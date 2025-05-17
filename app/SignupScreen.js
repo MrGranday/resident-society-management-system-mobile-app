@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
 
+
 export default function SignupScreen() {
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -154,6 +155,7 @@ export default function SignupScreen() {
       const response = await axios.get('https://api.zeruh.com/v1/verify', {
         params: {
           api_key: '5beabb9bcc373adf9976de879f8bf8a9cc83b96885d4652a75e2215e23d9a393',
+     
           email_address: emailInput,
         },
       });
