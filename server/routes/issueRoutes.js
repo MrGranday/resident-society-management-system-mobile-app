@@ -163,55 +163,7 @@ router.get('/resolved', verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/issues/staff/:staffId - Fetch issues for a staff member by issueType
-// router.get('/staff/:staffId', verifyToken, async (req, res) => {
-//   try {
-//     const { staffId } = req.params;
-//     const { issueType } = req.query;
-//     console.log('GET /api/issues/staff - staffId:', staffId, 'userId:', req.userId, 'issueType:', issueType);
 
-//     if (staffId !== req.userId) {
-//       return res.status(403).json({ message: 'Unauthorized to access issues for this staff member' });
-//     }
-
-//     const staff = await Staff.findById(staffId);
-//     if (!staff) {
-//       return res.status(404).json({ message: 'Staff member not found' });
-//     }
-//     console.log('Staff data:', { _id: staff._id, role: staff.role, society: staff.society });
-
-//     // Validate issueType
-//     const validIssueTypes = ['General', 'Personal'];
-//     const selectedIssueType = issueType && validIssueTypes.includes(issueType) ? issueType : 'General';
-
-//     const query = {
-//       role: staff.role,
-//       status: 'Open',
-//       society: staff.society,
-//       issueType: { $eq: selectedIssueType, $exists: true }
-//     };
-
-//     const issues = await Issue.find(query)
-//       .populate('reporterUser', 'name address')
-//       .sort({ createdAt: -1 });
-
-//     console.log(`Fetched ${selectedIssueType.toLowerCase()} issues:`, issues.map(i => ({ 
-//       _id: i._id, 
-//       title: i.title, 
-//       status: i.status, 
-//       issueType: i.issueType, 
-//       reporter: i.reporter, 
-//       reporterAddress: i.reporterUser?.address || 'Not provided'
-//     })));
-//     res.json(issues);
-//   } catch (error) {
-//     console.error('Fetch staff issues error:', error);
-//     res.status(500).json({ message: 'Failed to fetch staff issues', error: error.message });
-//   }
-// });
-
-
-// GET /api/issues/staff/:staffId - Fetch issues for a staff member by issueType
 router.get('/staff/:staffId', verifyToken, async (req, res) => {
   try {
     const { staffId } = req.params;

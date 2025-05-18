@@ -2,7 +2,7 @@
 
 
 // import React, { useEffect, useState } from 'react';
-// import { StyleSheet, View, Text, FlatList, TouchableOpacity, Image, Alert,Platform } from 'react-native';
+// import { StyleSheet, View, Text, FlatList, TouchableOpacity, Image, Alert, Platform, Modal } from 'react-native';
 // import axios from 'axios';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { useRouter } from 'expo-router';
@@ -14,6 +14,7 @@
 //   const [filterStatus, setFilterStatus] = useState('Open');
 //   const [user, setUser] = useState(null);
 //   const [notificationCount, setNotificationCount] = useState(0);
+//   const [logoutModalVisible, setLogoutModalVisible] = useState(false); // New state for modal
 //   const router = useRouter();
 
 //   useEffect(() => {
@@ -98,43 +99,21 @@
 
 //   const handleLogout = async () => {
 //     console.log('handleLogout called');
-    
-//     // Use platform-specific confirmation
-//     const confirmLogout = Platform.OS === 'web'
-//       ? window.confirm('Are you sure you want to log out?')
-//       : await new Promise((resolve) => {
-//           Alert.alert(
-//             'Confirm Logout',
-//             'Are you sure you want to log out?',
-//             [
-//               { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-//               { text: 'Logout', style: 'destructive', onPress: () => resolve(true) },
-//             ]
-//           );
-//         });
-  
-//     if (confirmLogout) {
-//       try {
-//         console.log('Starting logout process...');
-//         await AsyncStorage.removeItem('token');
-//         console.log('Token removed');
-//         await AsyncStorage.removeItem('user');
-//         console.log('User removed');
-//         console.log('Navigating to /LoginScreen');
-//         router.push('/LoginScreen');
-//         console.log('Navigation command executed');
-//       } catch (error) {
-//         console.error('Failed to logout:', error);
-//         if (Platform.OS === 'web') {
-//           window.alert('Failed to logout');
-//         } else {
-//           Alert.alert('Error', 'Failed to logout');
-//         }
-//       }
-//     } else {
-//       console.log('Logout cancelled');
+//     try {
+//       console.log('Starting logout process...');
+//       await AsyncStorage.removeItem('token');
+//       console.log('Token removed');
+//       await AsyncStorage.removeItem('user');
+//       console.log('User removed');
+//       console.log('Navigating to /LoginScreen');
+//       router.push('/LoginScreen');
+//       console.log('Navigation command executed');
+//     } catch (error) {
+//       console.error('Failed to logout:', error);
+//       Alert.alert('Error', 'Failed to logout');
 //     }
 //   };
+
 //   const getInitials = (name) => {
 //     if (!name) return 'R';
 //     const names = name.trim().split(' ');
@@ -149,7 +128,7 @@
 //           style={styles.logoutButton}
 //           onPress={() => {
 //             console.log('Logout button pressed');
-//             handleLogout();
+//             setLogoutModalVisible(true); // Show modal instead of window.confirm
 //           }}
 //         >
 //           <FontAwesome name="sign-out" size={24} color="#FF4444" />
@@ -235,6 +214,43 @@
 //         }
 //         contentContainerStyle={styles.flatListContent}
 //       />
+
+//       {/* Logout Confirmation Modal */}
+//       <Modal
+//         animationType="slide"
+//         transparent={true}
+//         visible={logoutModalVisible}
+//         onRequestClose={() => setLogoutModalVisible(false)}
+//       >
+//         <View style={styles.modalContainer}>
+//           <View style={styles.modalContent}>
+//             <Text style={styles.modalTitle}>Confirm Logout</Text>
+//             <Text style={styles.modalText}>
+//               Are you sure you want to log out?
+//             </Text>
+//             <View style={styles.modalButtonContainer}>
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.cancelButton]}
+//                 onPress={() => {
+//                   console.log('Logout cancelled');
+//                   setLogoutModalVisible(false);
+//                 }}
+//               >
+//                 <Text style={styles.modalButtonText}>Cancel</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.confirmButton]}
+//                 onPress={() => {
+//                   setLogoutModalVisible(false);
+//                   handleLogout();
+//                 }}
+//               >
+//                 <Text style={styles.modalButtonText}>Confirm</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </View>
+//       </Modal>
 //     </View>
 //   );
 // }
@@ -396,15 +412,73 @@
 //     paddingHorizontal: 20,
 //     paddingBottom: 20,
 //   },
+//   // Modal styles (copied from SignupScreen.js)
+//   modalContainer: {
+//     flex: 1,
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+//   },
+//   modalContent: {
+//     width: '85%',
+//     backgroundColor: '#fff',
+//     borderRadius: 10,
+//     padding: 20,
+//     elevation: 2,
+//   },
+//   modalTitle: {
+//     fontSize: 22,
+//     fontWeight: 'bold',
+//     color: '#333',
+//     marginBottom: 10,
+//   },
+//   modalText: {
+//     fontSize: 16,
+//     color: '#666',
+//     textAlign: 'center',
+//     marginBottom: 20,
+//   },
+//   modalButtonContainer: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     width: '100%',
+//   },
+//   modalButton: {
+//     flex: 1,
+//     padding: 10,
+//     borderRadius: 10,
+//     marginHorizontal: 5,
+//     alignItems: 'center',
+//   },
+//   cancelButton: {
+//     backgroundColor: '#6c757d',
+//   },
+//   confirmButton: {
+//     backgroundColor: '#007bff',
+//   },
+//   modalButtonText: {
+//     fontSize: 16,
+//     fontWeight: 'bold',
+//     color: '#fff',
+//   },
 // });
 
-
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, Image, Alert, Platform, Modal } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Alert,
+  Modal,
+  Animated,
+} from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const [issues, setIssues] = useState([]);
@@ -412,7 +486,9 @@ export default function HomeScreen() {
   const [filterStatus, setFilterStatus] = useState('Open');
   const [user, setUser] = useState(null);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [logoutModalVisible, setLogoutModalVisible] = useState(false); // New state for modal
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [menuSlide] = useState(new Animated.Value(300));
   const router = useRouter();
 
   useEffect(() => {
@@ -446,7 +522,16 @@ export default function HomeScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const fetchedIssues = response.data;
-      console.log('Fetched issues:', fetchedIssues.map(issue => ({ _id: issue._id, status: issue.status, role: issue.role, image: !!issue.image, createdAt: issue.createdAt })));
+      console.log(
+        'Fetched issues:',
+        fetchedIssues.map(issue => ({
+          _id: issue._id,
+          status: issue.status,
+          role: issue.role,
+          image: !!issue.image,
+          createdAt: issue.createdAt,
+        }))
+      );
       setIssues(fetchedIssues);
       applyFilter(filterStatus, fetchedIssues);
       updateNotifications(fetchedIssues);
@@ -471,7 +556,10 @@ export default function HomeScreen() {
       return issueStatus === filterStatusLower && issueStatus !== 'resolved';
     });
     filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    console.log('Filtered issues:', filtered.map(issue => ({ _id: issue._id, status: issue.status, createdAt: issue.createdAt })));
+    console.log(
+      'Filtered issues:',
+      filtered.map(issue => ({ _id: issue._id, status: issue.status, createdAt: issue.createdAt }))
+    );
     setFilteredIssues(filtered);
     setNotificationCount(filtered.length);
   };
@@ -512,6 +600,23 @@ export default function HomeScreen() {
     }
   };
 
+  const toggleMenu = () => {
+    if (menuVisible) {
+      Animated.timing(menuSlide, {
+        toValue: 300,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setMenuVisible(false));
+    } else {
+      setMenuVisible(true);
+      Animated.timing(menuSlide, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return 'R';
     const names = name.trim().split(' ');
@@ -522,14 +627,8 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Issue Dashboard</Text>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => {
-            console.log('Logout button pressed');
-            setLogoutModalVisible(true); // Show modal instead of window.confirm
-          }}
-        >
-          <FontAwesome name="sign-out" size={24} color="#FF4444" />
+        <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
+          <MaterialIcons name="menu" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
@@ -580,7 +679,7 @@ export default function HomeScreen() {
 
       <FlatList
         data={filteredIssues}
-        keyExtractor={(item) => item._id}
+        keyExtractor={item => item._id}
         renderItem={({ item }) => (
           <View style={styles.issueItem}>
             <Text style={styles.issueTitle}>{item.title}</Text>
@@ -612,6 +711,58 @@ export default function HomeScreen() {
         }
         contentContainerStyle={styles.flatListContent}
       />
+
+      {/* Hamburger Menu Modal */}
+      <Modal
+        animationType="none"
+        transparent={true}
+        visible={menuVisible}
+        onRequestClose={toggleMenu}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={toggleMenu}
+        >
+          <Animated.View
+            style={[
+              styles.menuContainer,
+              { transform: [{ translateX: menuSlide }] },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                toggleMenu();
+                router.push('/account');
+              }}
+            >
+              <MaterialIcons name="account-circle" size={24} color="#333" />
+              <Text style={styles.menuItemText}>Account</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                toggleMenu();
+                router.push('/Announcements');
+              }}
+            >
+              <MaterialIcons name="announcement" size={24} color="#333" />
+              <Text style={styles.menuItemText}>Announcements</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                toggleMenu();
+                setLogoutModalVisible(true);
+              }}
+            >
+              <MaterialIcons name="logout" size={24} color="#FF4444" />
+              <Text style={styles.menuItemText}>Logout</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Logout Confirmation Modal */}
       <Modal
@@ -674,7 +825,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  logoutButton: {
+  menuButton: {
     padding: 10,
   },
   welcomeCard: {
@@ -810,7 +961,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  // Modal styles (copied from SignupScreen.js)
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -858,5 +1008,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  menuContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 250,
+    backgroundColor: '#fff',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    elevation: 5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  menuItemText: {
+    fontSize: 18,
+    color: '#333',
+    marginLeft: 15,
   },
 });

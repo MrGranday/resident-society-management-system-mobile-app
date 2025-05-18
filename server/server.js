@@ -13,6 +13,7 @@ const staffRoutes = require('./routes/staffRoutes');
 const societyRoutes = require('./routes/societies');
 const issueRoutes = require('./routes/issueRoutes');
 const eventRoutes = require('./routes/events');
+const announcementRoutes = require('./routes/announcements');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/api/auth/staff', staffRoutes);
 app.use('/api/societies', societyRoutes);
 app.use('/api/issues', issueRoutes); // Fixed mount point
 app.use('/api/events', eventRoutes);
+app.use('/api', announcementRoutes); // Fixed mount point
 
 // Default route for testing
 app.get('/test', (req, res) => res.send('Server is running'));
