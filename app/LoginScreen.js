@@ -1,7 +1,6 @@
 
-
 // import React, { useState } from 'react';
-// import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
+// import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import { useRouter } from 'expo-router';
 // import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -9,12 +8,44 @@
 // export default function LoginScreen() {
 //   const [email, setEmail] = useState('');
 //   const [password, setPassword] = useState('');
+//   const [emailError, setEmailError] = useState('');
+//   const [passwordError, setPasswordError] = useState('');
+//   const [generalError, setGeneralError] = useState('');
 //   const [loading, setLoading] = useState(false);
 //   const router = useRouter();
 
+//   const validateEmail = (emailInput) => {
+//     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//     if (!emailInput) {
+//       setEmailError('Email is required');
+//     } else if (!emailRegex.test(emailInput)) {
+//       setEmailError('Please enter a valid email address');
+//     } else {
+//       setEmailError('');
+//     }
+//     setEmail(emailInput);
+//   };
+
+//   const validatePassword = (passwordInput) => {
+//     if (!passwordInput) {
+//       setPasswordError('Password is required');
+//     } else {
+//       setPasswordError('');
+//     }
+//     setPassword(passwordInput);
+//   };
+
 //   const handleLogin = async () => {
-//     if (!email || !password) {
-//       Alert.alert('Error', 'Please fill in all fields');
+//     // Clear all errors
+//     setEmailError('');
+//     setPasswordError('');
+//     setGeneralError('');
+
+//     // Validate inputs
+//     validateEmail(email);
+//     validatePassword(password);
+
+//     if (emailError || passwordError || !email || !password) {
 //       return;
 //     }
 
@@ -33,11 +64,16 @@
 //       console.log('Server response:', data);
 
 //       if (!response.ok) {
-//         throw new Error(data.message || 'Login failed');
-//       }
-
-//       if (data.message === 'Waiting for approval') {
-//         Alert.alert('Info', 'Your request is waiting for approval.');
+//         // Handle all server errors under the login button
+//         if (data.message === 'Resident profile not found') {
+//           setGeneralError('No account found with this email');
+//         } else if (data.message === 'Password doesn\'t match') {
+//           setGeneralError('Incorrect password');
+//         } else if (data.message === 'Waiting for approval') {
+//           setGeneralError('Your request is waiting for approval.');
+//         } else {
+//           setGeneralError(data.message || 'An error occurred. Please check your details.');
+//         }
 //         return;
 //       }
 
@@ -47,7 +83,7 @@
 //       router.replace('/(tabs)');
 //     } catch (error) {
 //       console.error('Resident login error:', error.message);
-//       Alert.alert('Error', error.message || 'Login failed');
+//       setGeneralError('An unexpected error occurred. Please try again.');
 //     } finally {
 //       setLoading(false);
 //     }
@@ -72,11 +108,12 @@
 //           style={styles.input}
 //           placeholder="Email"
 //           value={email}
-//           onChangeText={setEmail}
+//           onChangeText={validateEmail}
 //           keyboardType="email-address"
 //           autoCapitalize="none"
 //         />
 //       </View>
+//       {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
 //       <View style={styles.inputContainer}>
 //         <Ionicons name="lock-closed" size={24} color="#666" style={styles.icon} />
@@ -84,18 +121,20 @@
 //           style={styles.input}
 //           placeholder="Password"
 //           value={password}
-//           onChangeText={setPassword}
+//           onChangeText={validatePassword}
 //           secureTextEntry
 //         />
 //       </View>
+//       {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
 //       <TouchableOpacity
-//         style={styles.button}
+//         style={[styles.button, loading && styles.buttonDisabled]}
 //         onPress={handleLogin}
 //         disabled={loading}
 //       >
 //         <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
 //       </TouchableOpacity>
+//       {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
 
 //       <TouchableOpacity onPress={handleRegister}>
 //         <Text style={styles.registerText}>
@@ -159,10 +198,20 @@
 //     borderRadius: 10,
 //     marginTop: 20,
 //   },
+//   buttonDisabled: {
+//     opacity: 0.6,
+//   },
 //   buttonText: {
 //     fontSize: 18,
 //     fontWeight: 'bold',
 //     color: '#fff',
+//   },
+//   errorText: {
+//     color: '#dc3545',
+//     fontSize: 14,
+//     marginBottom: 10,
+//     alignSelf: 'flex-start',
+//     marginLeft: 10,
 //   },
 //   registerText: {
 //     marginTop: 20,
@@ -186,8 +235,9 @@
 //   },
 // });
 
+
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -197,6 +247,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [generalError, setGeneralError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -222,7 +273,12 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    // Validate inputs before sending request
+    // Clear all errors
+    setEmailError('');
+    setPasswordError('');
+    setGeneralError('');
+
+    // Validate inputs
     validateEmail(email);
     validatePassword(password);
 
@@ -245,26 +301,47 @@ export default function LoginScreen() {
       console.log('Server response:', data);
 
       if (!response.ok) {
-        // Handle specific server errors
+        // Handle all server errors under the login button
         if (data.message === 'Resident profile not found') {
-          setEmailError('No account found with this email');
-        } else if (data.message === 'Password doesn\'t match') {
-          setPasswordError('Incorrect password');
+          setGeneralError('No account found with this email');
+        } else if (data.message === "Password doesn't match") {
+          setGeneralError('Incorrect password');
         } else if (data.message === 'Waiting for approval') {
-          Alert.alert('Info', 'Your request is waiting for approval.');
+          setGeneralError('Your request is waiting for approval.');
         } else {
-          setEmailError('An error occurred. Please check your details.');
+          setGeneralError(data.message || 'An error occurred. Please check your details.');
         }
         return;
       }
 
       const { token, user } = data;
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      router.replace('/(tabs)');
+      if (!user._id || !user.society || !user.role) {
+        throw new Error('Invalid user data: missing _id, society, or role');
+      }
+
+      // Store data in AsyncStorage
+      await AsyncStorage.multiSet([
+        ['token', token],
+        ['user', JSON.stringify(user)],
+        ['userType', user.role === 'resident' ? 'resident' : 'staff'],
+        ['userId', user._id.toString()],
+        ['societyId', user.society.toString()],
+      ]);
+
+      console.log('LoginScreen - Stored token:', token);
+      console.log('LoginScreen - Stored user:', JSON.stringify(user));
+      console.log('LoginScreen - Stored userType:', user.role === 'resident' ? 'resident' : 'staff');
+      console.log('LoginScreen - Stored userId:', user._id.toString());
+      console.log('LoginScreen - Stored societyId:', user.society.toString());
+
+      // Redirect based on role
+      router.replace({
+        pathname: user.role === 'resident' ? '/(tabs)' : '/(staff-tabs)/Issues',
+        params: { userType: user.role === 'resident' ? 'resident' : 'staff' },
+      });
     } catch (error) {
       console.error('Resident login error:', error.message);
-      setEmailError('An unexpected error occurred. Please try again.');
+      setGeneralError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -315,6 +392,7 @@ export default function LoginScreen() {
       >
         <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
       </TouchableOpacity>
+      {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
 
       <TouchableOpacity onPress={handleRegister}>
         <Text style={styles.registerText}>
@@ -387,7 +465,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   errorText: {
-    color: '#dc3545', // Match SignupScreen errorText
+    color: '#dc3545',
     fontSize: 14,
     marginBottom: 10,
     alignSelf: 'flex-start',

@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -21,23 +22,30 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons, FontAwesome, Ionicons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
 
-
 export default function SignupScreen() {
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [address, setAddress] = useState('');
-  const [houseNumber, setHouseNumber] = useState('');
   const [societies, setSocieties] = useState([]);
   const [filteredSocieties, setFilteredSocieties] = useState([]);
   const [selectedSocietyId, setSelectedSocietyId] = useState('');
   const [selectedSocietyName, setSelectedSocietyName] = useState('');
+  const [selectedManagerId, setSelectedManagerId] = useState(''); // New state for manager ID
   const [searchQuery, setSearchQuery] = useState('');
+  const [addresses, setAddresses] = useState([]);
+  const [filteredAddresses, setFilteredAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const [houseNumbers, setHouseNumbers] = useState([]);
+  const [filteredHouseNumbers, setFilteredHouseNumbers] = useState([]);
+  const [selectedHouseNumber, setSelectedHouseNumber] = useState('');
+  const [addressSearchQuery, setAddressSearchQuery] = useState('');
+  const [showHouseDropdown, setShowHouseDropdown] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [nameError, setNameError] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -46,6 +54,8 @@ export default function SignupScreen() {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [societyError, setSocietyError] = useState('');
+  const [addressError, setAddressError] = useState('');
+  const [houseNumberError, setHouseNumberError] = useState('');
   const [formError, setFormError] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
@@ -94,6 +104,30 @@ export default function SignupScreen() {
     }
   };
 
+  const fetchAddresses = async (societyId) => {
+    setAddressLoading(true);
+    setAddressError('');
+    try {
+      const response = await axios.get(`http://localhost:3000/api/societies/${societyId}/housing`);
+      const housingEntries = response.data;
+      console.log('Fetched housing entries:', housingEntries);
+      const uniqueAddresses = [...new Set(housingEntries.map(entry => entry.address))];
+      setAddresses(uniqueAddresses);
+      setFilteredAddresses(uniqueAddresses);
+      setHouseNumbers(housingEntries);
+      setFilteredHouseNumbers([]);
+      if (uniqueAddresses.length === 0) {
+        setAddressError('No addresses found for this society');
+      }
+    } catch (error) {
+      console.error('Fetch addresses error:', error);
+      Alert.alert('Error', 'Failed to fetch addresses');
+      setAddressError('Failed to load addresses. Please try again.');
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
       fetchSocieties();
@@ -108,6 +142,17 @@ export default function SignupScreen() {
       setFilteredSocieties(filtered);
     } else {
       setFilteredSocieties(societies);
+    }
+  }, 300);
+
+  const filterAddresses = debounce((query) => {
+    if (query) {
+      const filtered = addresses.filter((address) =>
+        address.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredAddresses(filtered);
+    } else {
+      setFilteredAddresses(addresses);
     }
   }, 300);
 
@@ -155,7 +200,6 @@ export default function SignupScreen() {
       const response = await axios.get('https://api.zeruh.com/v1/verify', {
         params: {
           api_key: '5beabb9bcc373adf9976de879f8bf8a9cc83b96885d4652a75e2215e23d9a393',
-     
           email_address: emailInput,
         },
       });
@@ -234,24 +278,49 @@ export default function SignupScreen() {
     }
     setSelectedSocietyId(society._id.toString());
     setSelectedSocietyName(society.name);
+    setSelectedManagerId(society.manager); // Set manager ID
     setSearchQuery(society.name);
     setFilteredSocieties(societies);
     setSocietyError('');
+    console.log('Updated states:', { selectedSocietyId: society._id.toString(), selectedManagerId: society.manager });
     setModalVisible(true);
   };
 
+  const handleAddressSelect = (address) => {
+    setSelectedAddress(address);
+    setAddressSearchQuery(address);
+    setFilteredAddresses(addresses);
+    setAddressError('');
+    const filtered = houseNumbers
+      .filter((entry) => entry.address === address)
+      .map((entry) => entry.houseNumber);
+    setFilteredHouseNumbers(filtered);
+    setSelectedHouseNumber('');
+    setShowHouseDropdown(true);
+    if (filtered.length === 0) {
+      setHouseNumberError('No house numbers available for this address');
+    } else {
+      setHouseNumberError('');
+    }
+  };
+
+  const handleHouseNumberSelect = (houseNumber) => {
+    setSelectedHouseNumber(houseNumber);
+    setHouseNumberError('');
+    setShowHouseDropdown(false);
+  };
+
   const requestVerification = async () => {
-    const managerId = societies.find((s) => s._id.toString() === selectedSocietyId)?.manager;
-    console.log('Manager ID for request:', managerId);
+    console.log('Requesting verification with:', { selectedSocietyId, selectedManagerId });
     const payload = {
       name,
       phoneNumber,
       email,
       password,
-      address,
-      houseNumber,
+      address: selectedAddress,
+      houseNumber: selectedHouseNumber,
       societyId: selectedSocietyId,
-      managerId,
+      managerId: selectedManagerId,
     };
     console.log('Sending verification request:', payload);
     try {
@@ -275,25 +344,12 @@ export default function SignupScreen() {
   const proceedWithSignup = () => {
     setModalVisible(false);
     setFormError('');
-    if (!name || !phoneNumber || !email || !password || !confirmPassword || !address || !houseNumber || !selectedSocietyId) {
-      setFormError('Please fill in all fields');
-      return;
-    }
-    const managerId = societies.find((s) => s._id.toString() === selectedSocietyId)?.manager;
-    console.log('Manager ID for signup:', managerId);
-    if (!managerId) {
-      setSocietyError('Selected society has no manager assigned');
-      return;
-    }
-    if (!/^[0-9a-fA-F]{24}$/.test(managerId)) {
-      setSocietyError('Invalid manager ID for this society');
-      return;
-    }
-    if (nameError || phoneError || emailError || passwordError || confirmPasswordError || societyError) {
-      setFormError('Please fix the errors in the form');
-      return;
-    }
-    requestVerification();
+    setAddressSearchQuery('');
+    setSelectedAddress('');
+    setFilteredHouseNumbers([]);
+    setSelectedHouseNumber('');
+    setShowHouseDropdown(false);
+    fetchAddresses(selectedSocietyId);
   };
 
   const handleSignup = () => {
@@ -303,7 +359,19 @@ export default function SignupScreen() {
         setSocietyError('Please select a society');
         return;
       }
-      setModalVisible(true);
+      if (!selectedManagerId) {
+        setSocietyError('No manager assigned to the selected society');
+        return;
+      }
+      if (!selectedAddress) {
+        setAddressError('Please select an address');
+        return;
+      }
+      if (!selectedHouseNumber) {
+        setHouseNumberError('Please select a house number');
+        return;
+      }
+      requestVerification();
     } else {
       setFormError('Please enter valid name, phone number, email, and password');
     }
@@ -311,7 +379,7 @@ export default function SignupScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }} // Fixed: Added closing brace
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
@@ -405,40 +473,19 @@ export default function SignupScreen() {
           </View>
           {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="home" size={24} color="#666" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Address"
-              placeholderTextColor="#A1A1AA"
-              value={address}
-              onChangeText={setAddress}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="location-city" size={24} color="#666" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="House Number"
-              placeholderTextColor="#A1A1AA"
-              value={houseNumber}
-              onChangeText={setHouseNumber}
-            />
-          </View>
-
+          {/* Society Search Bar */}
           <View style={styles.inputContainer}>
             <MaterialIcons name="search" size={24} color="#666" style={styles.icon} />
             <TextInput
               style={styles.input}
-              placeholder="Search Society"
+              placeholder="Search for your society"
               placeholderTextColor="#A1A1AA"
               value={searchQuery}
               onChangeText={(text) => {
                 setSearchQuery(text);
                 filterSocieties(text);
               }}
-              autoCapitalize="none"
+              autoCapitalize="words"
             />
           </View>
           {societyError ? <Text style={styles.errorText}>{societyError}</Text> : null}
@@ -453,7 +500,9 @@ export default function SignupScreen() {
                   onPress={() => handleSocietySelect(item)}
                 >
                   <Text style={styles.societyText}>{item.name}</Text>
-                  <Text style={styles.societySubText}>{item.address}</Text>
+                  {item.address ? (
+                    <Text style={styles.societySubText}>{item.address}</Text>
+                  ) : null}
                 </TouchableOpacity>
               )}
               onEndReached={handleLoadMore}
@@ -467,6 +516,92 @@ export default function SignupScreen() {
               }
               style={styles.societyList}
             />
+          ) : (
+            <Text style={styles.loadingText}>Type to search for a society</Text>
+          )}
+
+          {/* Address Search Bar (Shown after society confirmation) */}
+          {selectedSocietyId ? (
+            <>
+              <View style={styles.inputContainer}>
+                <MaterialIcons name="home" size={24} color="#666" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Search for address"
+                  placeholderTextColor="#A1A1AA"
+                  value={addressSearchQuery}
+                  onChangeText={(text) => {
+                    setAddressSearchQuery(text);
+                    filterAddresses(text);
+                  }}
+                  autoCapitalize="words"
+                />
+                {addressLoading && <ActivityIndicator size="small" color="#666" style={styles.icon} />}
+              </View>
+              {addressError ? <Text style={styles.errorText}>{addressError}</Text> : null}
+
+              {addressSearchQuery && filteredAddresses.length > 0 ? (
+                <FlatList
+                  data={filteredAddresses}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.societyItem}
+                      onPress={() => handleAddressSelect(item)}
+                    >
+                      <Text style={styles.societyText}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                  style={styles.societyList}
+                  ListEmptyComponent={
+                    <Text style={styles.loadingText}>No addresses found</Text>
+                  }
+                />
+              ) : addressSearchQuery ? (
+                <Text style={styles.loadingText}>No addresses found</Text>
+              ) : (
+                <Text style={styles.loadingText}>Type to search for an address</Text>
+              )}
+            </>
+          ) : null}
+
+          {/* House Number Dropdown (Shown after address selection) */}
+          {selectedAddress ? (
+            <>
+              <View style={styles.inputContainer}>
+                <MaterialIcons name="location-city" size={24} color="#666" style={styles.icon} />
+                <TouchableOpacity
+                  style={styles.input}
+                  onPress={() => setShowHouseDropdown(true)}
+                >
+                  <Text style={[styles.inputText, { color: selectedHouseNumber ? '#333' : '#A1A1AA' }]}>
+                    {selectedHouseNumber || 'Select house number'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {houseNumberError ? <Text style={styles.errorText}>{houseNumberError}</Text> : null}
+
+              {showHouseDropdown && filteredHouseNumbers.length > 0 ? (
+                <FlatList
+                  data={filteredHouseNumbers}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.societyItem}
+                      onPress={() => handleHouseNumberSelect(item)}
+                    >
+                      <Text style={styles.societyText}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                  style={styles.societyList}
+                  ListEmptyComponent={
+                    <Text style={styles.loadingText}>No house numbers available</Text>
+                  }
+                />
+              ) : showHouseDropdown ? (
+                <Text style={styles.loadingText}>No house numbers available</Text>
+              ) : null}
+            </>
           ) : null}
 
           {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
@@ -504,7 +639,15 @@ export default function SignupScreen() {
                   onPress={() => {
                     setSelectedSocietyId('');
                     setSelectedSocietyName('');
+                    setSelectedManagerId('');
                     setSearchQuery('');
+                    setAddresses([]);
+                    setFilteredAddresses([]);
+                    setSelectedAddress('');
+                    setHouseNumbers([]);
+                    setFilteredHouseNumbers([]);
+                    setSelectedHouseNumber('');
+                    setShowHouseDropdown(false);
                     setModalVisible(false);
                   }}
                 >
@@ -572,6 +715,10 @@ const styles = StyleSheet.create({
     height: 50,
     fontSize: 16,
     color: '#333',
+    justifyContent: 'center',
+  },
+  inputText: {
+    fontSize: 16,
   },
   societyItem: {
     padding: 10,
